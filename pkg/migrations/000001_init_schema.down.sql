@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS delivery_logs;
+DROP TABLE IF EXISTS recipients;
+DROP TABLE IF EXISTS emails;
+DROP TABLE IF EXISTS email_limits;

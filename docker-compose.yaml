@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DB_NAME: mock_ses
+        DB_HOST: db
+        DB_PASSWORD: secret
+        DB_PORT: 5432
+        BUILD: "release"
+    environment:
+      CRUD_DB_NAME: mock_ses
+      CRUD_DB_HOST: db
+      CRUD_DB_PASSWORD: secret
+      CRUD_DB_PORT: 5432
+      CRUD_BUILD: "release"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+  db:
+    image: postgres:15
+    container_name: postgres_sesmock
+    restart: always
+    environment:
+      POSTGRES_DB: mock_ses
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "mock_ses"]
+      interval: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      db:
+        condition: service_healthy  # Ensures DB is fully ready
+    networks:
+      - app_network
+    volumes:
+      - ./pkg/migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://postgres:secret@db:5432/mock_ses?sslmode=disable",
+      "up"
+    ]
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
