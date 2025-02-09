@@ -42,4 +42,7 @@ func NewHandler(app *App) {
 	app.r.POST("/suppression-list", app.AddToSuppressionList)
 	app.r.DELETE("/suppression-list", app.DeleteFromSuppressionList)
 
+	//Get Email message-id stats
+	app.r.GET("/email/stats/:message_id", app.GetEmailStats)
+
 }

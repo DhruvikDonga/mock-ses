@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -80,6 +82,33 @@ func (app *App) SendEmail(c *gin.Context) {
 		return
 	}
 
+	// Calculate Bounce Rate
+	bounceRate, err := app.GetSenderBouncedRate(sender, tx)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	//Block sender if bounce rate exceeds 0.1%
+	if bounceRate > 0.1 {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Sender temporarily blocked due to high bounce rate."})
+		return
+	}
+
+	//Enforce Emails Per Second (EPS) Limit (Max 5 emails/sec)
+	var emailCount int
+	err = tx.QueryRow(`
+		SELECT COUNT(*) FROM delivery_logs 
+		WHERE sender_email = $1 AND created_at >= NOW() - INTERVAL '1 second'`, sender).Scan(&emailCount)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check email rate limit"})
+		return
+	}
+	if emailCount >= 5 {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Email sending rate exceeded (5 emails/sec). Please try again later."})
+		return
+	}
+
 	// Check Daily Limit
 	quota, err := app.GetDailyQuota(sender)
 	if err != nil {
@@ -121,8 +150,8 @@ func (app *App) SendEmail(c *gin.Context) {
 		// Check suppression list
 		if app.isSuppressed(recipient) {
 			_, err = tx.Exec(
-				"INSERT INTO delivery_logs (email_id, message_id, recipient_email, status, response) VALUES ($1, $2, $3, $4, $5)",
-				emailID, messageID, recipient, "Suppressed", "Recipient is suppressed and email was not sent.",
+				"INSERT INTO delivery_logs (email_id, message_id, recipient_email, status, response,sender_email) VALUES ($1, $2, $3, $4, $5,$6)",
+				emailID, messageID, recipient, "Suppressed", "Recipient is suppressed and email was not sent.", sender,
 			)
 			if err != nil {
 				tx.Rollback()
@@ -138,8 +167,8 @@ func (app *App) SendEmail(c *gin.Context) {
 		//Update delivery_logs
 		randomStatus := statuses[rand.Intn(len(statuses))]
 		_, err = tx.Exec(
-			"INSERT INTO delivery_logs (email_id,message_id,recipient_email, status, response) VALUES ($1, $2, $3,$4,$5)",
-			emailID, messageID, recipient, randomStatus, getMockResponse(randomStatus),
+			"INSERT INTO delivery_logs (email_id,message_id,recipient_email, status, response,sender_email) VALUES ($1, $2, $3,$4,$5,$6)",
+			emailID, messageID, recipient, randomStatus, getMockResponse(randomStatus), sender,
 		)
 		if err != nil {
 			tx.Rollback()
@@ -219,4 +248,27 @@ func getMockResponse(status string) string {
 	default:
 		return "Unknown email status."
 	}
+}
+
+func (app *App) GetSenderBouncedRate(sender string, tx *sql.Tx) (float64, error) {
+	var totalEmails int
+	var bouncedEmails int
+
+	err := app.db.QueryRow(`
+		SELECT COUNT(*), 
+		COALESCE(SUM(CASE WHEN status = 'Bounced' THEN 1 ELSE 0 END), 0)
+		FROM delivery_logs WHERE sender_email = $1`, sender).Scan(&totalEmails, &bouncedEmails)
+
+	if err != nil {
+		app.log.Infof("Error fetching bounce rate for sender %s: %v", sender, err)
+		return 0, fmt.Errorf("failed to fetch bounce rate: %w", err)
+	}
+
+	// If no emails have been sent, return a bounce rate of 0
+	if totalEmails == 0 {
+		return 0, nil
+	}
+
+	bounceRate := (float64(bouncedEmails) / float64(totalEmails)) * 100
+	return bounceRate, nil
 }

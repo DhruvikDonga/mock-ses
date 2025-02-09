@@ -14,6 +14,7 @@ CREATE TABLE delivery_logs (
     email_id UUID NOT NULL REFERENCES emails(email_id) ON DELETE CASCADE,
     message_id VARCHAR(255) NOT NULL,
     recipient_email VARCHAR(255) NOT NULL,
+    sender_email VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL,
     response TEXT,
     created_at TIMESTAMP DEFAULT NOW()

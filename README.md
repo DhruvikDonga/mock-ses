@@ -42,6 +42,9 @@ Email Warming Up
 
 - Assign statuses like Sent, Bounced, Delivered, Rejected, Complaint, etc., randomly for realistic testing.
 
+What can be added :-
+- The bounce algorithm should be improved cause once percentage issue comes up that sender is blocklisted need to add a feature to unblock it
+
 ## API Endpoints
 
 1. **Ping** :- To check health of app
@@ -156,6 +159,47 @@ Email Warming Up
     }
     '
     ```
+7. Message ID stats
+
+   ```bash
+   curl  -X GET \
+    'http://localhost:8080/email/stats/f5220e28-b0e8-456a-b96b-9779352bded4' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)'
+   ``` 
+
+   Response
+   ```json
+   {
+    "logs": {
+      "Logs": [
+      {
+        "recipient_email": "recipient@example.com",
+        "sender_email": "dongadhruvik@gmail.com",
+        "status": "Click",
+        "response": "Recipient clicked on a link in the email.",
+        "created_at": "2025-02-09T14:28:55.614179Z"
+      },
+      {
+        "recipient_email": "cc@example.com",
+        "sender_email": "dongadhruvik@gmail.com",
+        "status": "Subscription",
+        "response": "Recipient has unsubscribed.",
+        "created_at": "2025-02-09T14:28:55.614179Z"
+      },
+      {
+        "recipient_email": "bcc@example.com",
+        "sender_email": "dongadhruvik@gmail.com",
+        "status": "Complaint",
+        "response": "Recipient marked email as spam.",
+        "created_at": "2025-02-09T14:28:55.614179Z"
+      }
+    ]
+    },
+    "message_id": "f5220e28-b0e8-456a-b96b-9779352bded4"
+    }
+   ```
+  
 
 ## Tasks
 - [x] Project Setup
