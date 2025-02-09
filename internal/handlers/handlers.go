@@ -27,4 +27,19 @@ func NewHandler(app *App) {
 
 	//Health Check API
 	app.r.GET("/ping", app.Health)
+
+	//SendMail mock API
+	app.r.POST("/v2/email/outbound-emails", app.SendEmail)
+
+	//SetEmailLimits
+	app.r.POST("/email-limits", app.SetEmailLimits)
+
+	//Add/Remove Verified Emails
+	app.r.POST("/verified-senders", app.AddVerifiedSender)
+	app.r.DELETE("/verified-senders", app.DeleteVerifiedSender)
+
+	//Add/Remove Suppressed Emails
+	app.r.POST("/suppression-list", app.AddToSuppressionList)
+	app.r.DELETE("/suppression-list", app.DeleteFromSuppressionList)
+
 }

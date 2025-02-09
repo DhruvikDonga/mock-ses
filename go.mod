@@ -5,10 +5,10 @@ go 1.23.4
 require (
 	github.com/ardanlabs/conf v1.5.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/google/uuid v1.1.2
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/pkg/errors v0.9.1
-	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -23,7 +23,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.24.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
