@@ -1,18 +1,18 @@
 # Mock SES
 
-## Mock Send Email api
+## Mock Send Email API
 
-Mock API takes the [request structure](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html#API_SendEmail_RequestSyntax) as of Send Email V2 docs and it saves the random status of that email as of what [SES saves](https://docs.aws.amazon.com/ses/latest/dg/monitor-sending-activity.html#:~:text=event%20types%20to-,monitor%20in%20SES%3A,-Send%20%E2%80%93%20The%20send) .
+Mock API takes the [request structure](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html#API_SendEmail_RequestSyntax) as of Send Email V2 docs and it saves the random status of that email as of what [SES saves](https://docs.aws.amazon.com/ses/latest/dg/monitor-sending-activity.html#:~:text=event%20types%20to-,monitor%20in%20SES%3A,-Send%20%E2%80%93%20The%20send).
 
-Note:- So in request structrue the mock api only sends simple message in content there are 3 options though so follow this doc if you want to create [content simple](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_EmailContent.html)
+Note:- So in request structure the mock API only sends simple message in content there are 3 options though so follow this doc if you want to create [content simple](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_EmailContent.html)
 
-Mock API takes request headers :-
-Check [AWS signatuer v4](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv.html) 
+Mock API takes request headers:-
+Check [AWS signature v4](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv.html) 
 [Sample implementation](https://gist.github.com/anandkunal/b67eb94454b77cfc2b50026989586cc0#file-aws_sigv4_ses-go-L101)
 - Authorization (simply checks prefix :- "AWS4-HMAC-SHA256") 
 - X-Amz-Date
 
-### Mock SES email sending rules
+### Mock SES Email Sending Rules
 AWS SES Rules hardcode implementation in mock API [Reference](https://docs.aws.amazon.com/ses/latest/dg/manage-sending-quotas-request-increase.html)
 
 Email Warming Up
@@ -42,13 +42,139 @@ Email Warming Up
 
 - Assign statuses like Sent, Bounced, Delivered, Rejected, Complaint, etc., randomly for realistic testing.
 
+## API Endpoints
+
+1. **Ping** :- To check health of app
+   ```bash 
+    curl  -X GET \
+    'http://localhost:8080/ping' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)'
+   ```
+
+   **Response**
+   ```json
+    {
+      "API service": "UP",
+      "DB service": "UP",
+      "Timestamp": "2025-02-09T11:37:14.921742278Z"
+    }  
+   ```
+
+2. **Send Mock Email** :- Mock test API
+   1. Check if email is verified or add it
+   2. Check if email has proper email limits or add it
+
+    ```bash
+    curl  -X POST \
+    'http://localhost:8080/v2/email/outbound-emails' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
+    --header 'Authorization: AWS4-HMAC-SHA256 Credential=mock-credential' \
+    --header 'X-Amz-Date: 20250208T120000Z' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+    "FromEmailAddress": "dongadhruvik@gmail.com",
+    "Destination": {
+      "ToAddresses": ["recipient@example.com"],
+      "CcAddresses": ["cc@example.com"],
+      "BccAddresses": ["bcc@example.com"]
+    },
+    "Content": {
+      "Simple": {
+        "Subject": {
+          "Data": "Test Email Subject",
+          "Charset": "UTF-8"
+        },
+        "Body": {
+          "Text": {
+            "Data": "This is a test email in plain text.",
+            "Charset": "UTF-8"
+          },
+          "Html": {
+            "Data": "<h1>This is a test email in HTML</h1>",
+            "Charset": "UTF-8"
+          }
+        }
+      }
+    }
+    }
+    '
+    ```
+
+    **Response**
+    ```json
+    {
+      "MessageId": "74319a97-2cd6-4183-bffa-dabb4b0ab204"
+    }
+    ```
+
+3. **Set Email Limit** :- To set the email limit of sender
+    ```bash
+    curl  -X POST \
+    'http://localhost:8080/email-limits' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "sender_email": "dongadhruvik@gmail.com",
+      "daily_quota": 2
+      }
+    '
+    ```
+  
+    **Response**
+    ```json
+    {
+      "message": "Email limits updated successfully"
+    }
+    ```
+4. **Add/Delete Email to Suppressed List** :- Recipient emails to suppressed list
+     change POST to DELETE to remove email 
+    ```bash
+    curl  -X POST \
+    'http://localhost:8080/suppression-list' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "email": "recipient@example.com"
+    }
+    '
+    ```
+
+6. **Add/Delete Verified Email Sender List**
+    change POST to DELETE to remove email 
+   ```bash
+    curl  -X POST \
+    'http://localhost:8080/verified-senders' \
+    --header 'Accept: */*' \
+    --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "email": "dongadhruvik@gmail.com"
+    }
+    '
+    ```
+
 ## Tasks
 - [x] Project Setup
   - [x] Go App setup
   - [x] Database (Postgres Docker container)
 - [x] Database Structure
   - [x] emails table
-  - [x] email receipents table
+  - [x] email recipients table
   - [x] email delivery logs table
   - [x] email statistics table
-- [] [Mock Send Email v2](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html) implementation
+- [x] [Mock Send Email v2](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html) implementation
+  - [x] Verified Email API 
+  - [x] Suppressed Email API
+  - [x] Mock API email 
+  - [x] Set Email Limits
+- [x] Email Delivery Stats API
+
+## Useful Commands
+- ```docker compose build app```
+- ```docker compose build```
+- ```docker compose up```
+- ```docker-compose exec db psql -U postgres -d mock_ses```
